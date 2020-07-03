@@ -29,7 +29,7 @@ SSD1306AsciiAvrI2c oled;
 
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(19200);
   Serial.println("---------------");
   Serial.println("GPS-LOGGER");
   Serial.println("(c)2020 Patrick Itten, www.patrickitten.ch");
@@ -127,8 +127,12 @@ void displayInfo(){
 }
 
 void sendInfoToSerial(){
+  // Satellites
+  Serial.print(F("Satellites: ")); 
+  Serial.print(gps.satellites.value());
+  
   // Location
-  Serial.print(F("Location: ")); 
+  Serial.print(F("  Location: ")); 
   if (gps.location.isValid())
   {
     Serial.print(gps.location.lat(), 5);
@@ -137,7 +141,7 @@ void sendInfoToSerial(){
   }
   else
   {
-    Serial.print(F("INVALID"));
+    Serial.print(F("n.A."));
   }
   // Altitude
   Serial.print(F("  Altitude: ")); 
@@ -147,7 +151,7 @@ void sendInfoToSerial(){
   }
   else
   {
-    Serial.print(F("INVALID"));
+    Serial.print(F("n.A."));
   }
   // Speed
   Serial.print(F("  Speed: ")); 
@@ -160,7 +164,7 @@ void sendInfoToSerial(){
   }
   else
   {
-    Serial.print(F("INVALID"));
+    Serial.print(F("n.A."));
   }
   // Course
   Serial.print(F("  Course: ")); 
@@ -170,7 +174,7 @@ void sendInfoToSerial(){
   }
   else
   {
-    Serial.print(F("INVALID"));
+    Serial.print(F("n.A."));
   }
   // Date/Time
   Serial.print(F("  Date/Time: "));
@@ -184,7 +188,7 @@ void sendInfoToSerial(){
   }
   else
   {
-    Serial.print(F("INVALID"));
+    Serial.print(F("n.A."));
   }
   Serial.print(F(" "));
   if (gps.time.isValid())
@@ -203,7 +207,7 @@ void sendInfoToSerial(){
   }
   else
   {
-    Serial.print(F("INVALID"));
+    Serial.print(F("n.A."));
   }
 
   Serial.println();
