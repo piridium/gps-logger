@@ -15,10 +15,21 @@ SoftwareSerial gpss(RXPin, TXPin);
 TinyGPSPlus gps;
 
 // Display
-U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+// U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+#include "SSD1306Ascii.h"
+#include "SSD1306AsciiAvrI2c.h"
+
+// 0X3C+SA0 - 0x3C or 0x3D
+#define I2C_ADDRESS 0x3C
+
+// Define proper RST_PIN if required.
+#define RST_PIN -1
+
+SSD1306AsciiAvrI2c oled;
+
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   Serial.println("---------------");
   Serial.println("GPS-LOGGER");
   Serial.println("(c)2020 Patrick Itten, www.patrickitten.ch");
@@ -36,26 +47,27 @@ void setup() {
   Serial.println("Connection to GPS established.");
   Serial.println("---------------");
 
-  u8g2.begin();
+  #if RST_PIN >= 0
+    oled.begin(&Adafruit128x64, I2C_ADDRESS, RST_PIN);
+  #else // RST_PIN >= 0
+    oled.begin(&Adafruit128x64, I2C_ADDRESS);
+  #endif // RST_PIN >= 0
+    // Call oled.setI2cClock(frequency) to change from the default frequency.
+  oled.setFont(System5x7);
+  oled.clear();
+  oled.println("GPS LOGGER");
+  oled.println("Initializing...");
 }
 
 void loop() {
 
-  u8g2.firstPage();
-  do {
-    u8g2.setFont(u8g2_font_profont11_tf);
-    char *line = "loc: ";
-    u8g2.drawStr(0, 16, line);
-    // u8g2.drawStr(0,16,"Hallo Welt");
-  } while ( u8g2.nextPage() );
-
-
   while (gpss.available() > 0){
     gps.encode(gpss.read());
-    if (gps.location.isUpdated()){
-      sendInfoToSerial();
+    sendInfoToSerial();
+    // if (gps.location.isUpdated()){
       displayInfo();
-    }
+    // }
+    delay(2000);
   }
   if (millis() > 5000 && gps.charsProcessed() < 10)
   {
@@ -69,18 +81,49 @@ void loop() {
 
 
 void displayInfo(){
-  u8g2.firstPage();
-  do {
-//    u8g2.clearBuffer();
-    String buf;
-    u8g2.setFont(u8g2_font_profont11_tf);
-    buf += "loc: ";
-    buf += String(gps.location.lat(), 5);
-    buf += ", ";
-    buf += String(gps.location.lng(), 5);
-    u8g2.drawStr(0,7,"buf");
-    u8g2.drawLine(0,18,128,18);
-  } while ( u8g2.nextPage() );
+  oled.clear();
+  oled.print("lat: ");
+  oled.print(gps.location.lat(), 5);
+  oled.println();
+  oled.print("lng: ");
+  oled.print(gps.location.lng(), 5);
+  oled.println();
+  oled.print("alt: ");
+  oled.print(gps.altitude.meters(), 0);
+  oled.print(" m");
+  oled.println();
+  oled.print("spd: ");
+  oled.print(gps.speed.kmph(), 2);
+  oled.print(" kmh ");
+  oled.print(gps.speed.knots(), 2);
+  oled.print(" kt");
+  oled.println();
+  oled.print("crs: ");
+  oled.print(gps.course.deg(), 0);
+  oled.println();
+  oled.print("dat: ");
+  oled.print(gps.date.month());
+  oled.print(F("/"));
+  oled.print(gps.date.day());
+  oled.print(F("/"));
+  oled.print(gps.date.year());
+  oled.println();
+  oled.print("tme: ");
+  if (gps.time.hour() < 10) oled.print(F("0"));
+  oled.print(gps.time.hour());
+  oled.print(F(":"));
+  if (gps.time.minute() < 10) oled.print(F("0"));
+  oled.print(gps.time.minute());
+  oled.print(F(":"));
+  if (gps.time.second() < 10) oled.print(F("0"));
+  oled.print(gps.time.second());
+  oled.print(F("."));
+  if (gps.time.centisecond() < 10) oled.print(F("0"));
+  oled.print(gps.time.centisecond());
+  oled.println();
+  oled.print("sat: ");
+  oled.print(gps.satellites.value());
+
 }
 
 void sendInfoToSerial(){
