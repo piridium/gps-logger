@@ -1,18 +1,10 @@
 #include <Arduino.h>
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
-#include <U8g2lib.h>
+//#include <U8g2lib.h>
 //#include <SPI.h>
-//#include <Arduino.h>
+#include <Arduino.h>
 //#include <Wire.h>
-
-// GPS
-static const int RXPin = 2, TXPin = 3; //GPS communication
-static const uint32_t GPSBaud = 9600;
-SoftwareSerial gpss(RXPin, TXPin);
-
-// TinyGPS++ object
-TinyGPSPlus gps;
 
 // Display
 // U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
@@ -28,8 +20,16 @@ TinyGPSPlus gps;
 SSD1306AsciiAvrI2c oled;
 
 
+// GPS
+static const int RXPin = 2, TXPin = 3; //GPS communication
+static const uint32_t GPSBaud = 9600;
+SoftwareSerial gpss(RXPin, TXPin);
+
+// TinyGPS++ object
+TinyGPSPlus gps;
+
 void setup() {
-  Serial.begin(19200);
+  Serial.begin(9600);
   Serial.println("---------------");
   Serial.println("GPS-LOGGER");
   Serial.println("(c)2020 Patrick Itten, www.patrickitten.ch");
@@ -56,13 +56,16 @@ void setup() {
   oled.setFont(System5x7);
   oled.clear();
   oled.println("GPS LOGGER");
-  oled.println("Initializing...");
+  oled.println("initializing...");
 }
 
 void loop() {
 
   while (gpss.available() > 0){
     gps.encode(gpss.read());
+    Serial.print(F("Satellites: ")); 
+    Serial.print(gps.satellites.value());
+
     sendInfoToSerial();
     // if (gps.location.isUpdated()){
       displayInfo();
