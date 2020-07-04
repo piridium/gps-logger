@@ -1,58 +1,40 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
-// #include <Arduino.h>
-//#include <U8g2lib.h>
-//#include <SPI.h>
-#include <Arduino.h>
-//#include <Wire.h>
-
-// Display
-// U8G2_SSD1306_128X64_NONAME_1_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 #include "SSD1306Ascii.h"
 #include "SSD1306AsciiAvrI2c.h"
 
+// Display
 // 0X3C+SA0 - 0x3C or 0x3D
-#define I2C_ADDRESS 0x3C
-
+#define DISP_ADDRESS 0x3C
 // Define proper RST_PIN if required.
 #define RST_PIN -1
-
 SSD1306AsciiAvrI2c oled;
 
-
-// GPS
-
-// TinyGPS++ object
-TinyGPSPlus gps;
-// GPS communication
+//GPS
 static const int RXPin = 2, TXPin = 3;
 static const uint32_t GPSBaud = 9600;
+// The TinyGPS++ object
+TinyGPSPlus gps;
+// The serial connection to the GPS device
 SoftwareSerial ss(RXPin, TXPin);
 
-
-void setup() {
+void setup()
+{
   Serial.begin(9600);
-  Serial.println("---------------");
-  Serial.println("GPS-LOGGER");
-  Serial.println("(c)2020 Patrick Itten, www.patrickitten.ch");
-  Serial.println("---------------");
-
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for Native USB only
-  }
-  Serial.println("USB Connection established.");
-
   ss.begin(GPSBaud);
-  while (ss.available() == 0){
-    ; // wait for gps serial port to connect.
-  }
-  Serial.println("Connection to GPS established.");
-  Serial.println("---------------");
+
+  Serial.println(F("GPS-LOGGER"));
+  Serial.print(F("TinyGPS++ library v. ")); Serial.println(TinyGPSPlus::libraryVersion());
+  Serial.println(F("(c)2020 by Patrick Itten"));
+  Serial.println();
+  Serial.println(F("Sats HDOP  Latitude  Longitude  Fix  Date       Time     Date  Alt     Course Speed Card  Chars Sentences Checksum"));
+  Serial.println(F("           (deg)     (deg)      Age             UTC      Age   (m)     --- from GPS ----  RX    RX        Fail"));
+  Serial.println(F("--------------------------------------------------------------------------------------------------------------------------------------"));
 
   #if RST_PIN >= 0
-    oled.begin(&Adafruit128x64, I2C_ADDRESS, RST_PIN);
+    oled.begin(&Adafruit128x64, DISP_ADDRESS, RST_PIN);
   #else // RST_PIN >= 0
-    oled.begin(&Adafruit128x64, I2C_ADDRESS);
+    oled.begin(&Adafruit128x64, DISP_ADDRESS);
   #endif // RST_PIN >= 0
     // Call oled.setI2cClock(frequency) to change from the default frequency.
   oled.setFont(System5x7);
@@ -61,28 +43,19 @@ void setup() {
   oled.println("initializing...");
 }
 
-void loop() {
+void loop()
+{
+  serialInfo();
 
-  while (ss.available() > 0){
-    if (gps.encode(ss.read())){
-      Serial.print(F("Satellites: ")); 
-      Serial.print(gps.satellites.value());
-      Serial.println();
-//      sendInfoToSerial();
-    }
-
-    // if (gps.location.isUpdated()){
-      // displayInfo();
-    // }
-    // delay(2000);
+  if (gps.location.isUpdated()){
+    displayInfo();
   }
+  
+  smartDelay(1000);
+
   if (millis() > 5000 && gps.charsProcessed() < 10)
-  {
-    Serial.println(F("No GPS detected: check wiring."));
-    while(true);
-  }
+    Serial.println(F("No GPS data received: check wiring"));
 }
-
 
 void displayInfo(){
   oled.clear();
@@ -112,7 +85,7 @@ void displayInfo(){
   oled.print(F("/"));
   oled.print(gps.date.year());
   oled.println();
-  oled.print("tme: ");
+  oled.print("utc: ");
   if (gps.time.hour() < 10) oled.print(F("0"));
   oled.print(gps.time.hour());
   oled.print(F(":"));
@@ -127,104 +100,105 @@ void displayInfo(){
   oled.println();
   oled.print("sat: ");
   oled.print(gps.satellites.value());
-
 }
 
-void sendInfoToSerial(){
-  // Satellites
-  Serial.print(F("Satellites: ")); 
-  Serial.print(gps.satellites.value());
-  
-  // Location
-  Serial.print(F("  Location: ")); 
-  if (gps.location.isValid())
-  {
-    Serial.print(gps.location.lat(), 5);
-    Serial.print(F(","));
-    Serial.print(gps.location.lng(), 5);
-  }
-  else
-  {
-    Serial.print(F("n.A."));
-  }
-  // Altitude
-  Serial.print(F("  Altitude: ")); 
-  if (gps.location.isValid())
-  {
-    Serial.print(gps.altitude.meters(), 0);
-  }
-  else
-  {
-    Serial.print(F("n.A."));
-  }
-  // Speed
-  Serial.print(F("  Speed: ")); 
-  if (gps.location.isValid())
-  {
-    Serial.print(gps.speed.kmph(), 2);
-    Serial.print(" km/h ");
-    Serial.print(gps.speed.knots(), 2);
-    Serial.print(" kn ");
-  }
-  else
-  {
-    Serial.print(F("n.A."));
-  }
-  // Course
-  Serial.print(F("  Course: ")); 
-  if (gps.location.isValid())
-  {
-    Serial.print(gps.course.deg(), 0);
-  }
-  else
-  {
-    Serial.print(F("n.A."));
-  }
-  // Date/Time
-  Serial.print(F("  Date/Time: "));
-  if (gps.date.isValid())
-  {
-    Serial.print(gps.date.month());
-    Serial.print(F("/"));
-    Serial.print(gps.date.day());
-    Serial.print(F("/"));
-    Serial.print(gps.date.year());
-  }
-  else
-  {
-    Serial.print(F("n.A."));
-  }
-  Serial.print(F(" "));
-  if (gps.time.isValid())
-  {
-    if (gps.time.hour() < 10) Serial.print(F("0"));
-    Serial.print(gps.time.hour());
-    Serial.print(F(":"));
-    if (gps.time.minute() < 10) Serial.print(F("0"));
-    Serial.print(gps.time.minute());
-    Serial.print(F(":"));
-    if (gps.time.second() < 10) Serial.print(F("0"));
-    Serial.print(gps.time.second());
-    Serial.print(F("."));
-    if (gps.time.centisecond() < 10) Serial.print(F("0"));
-    Serial.print(gps.time.centisecond());
-  }
-  else
-  {
-    Serial.print(F("n.A."));
-  }
+void serialInfo(){
 
+  printInt(gps.satellites.value(), gps.satellites.isValid(), 5);
+  printFloat(gps.hdop.hdop(), gps.hdop.isValid(), 6, 1);
+  printFloat(gps.location.lat(), gps.location.isValid(), 10, 6);
+  printFloat(gps.location.lng(), gps.location.isValid(), 11, 6);
+  printInt(gps.location.age(), gps.location.isValid(), 6);
+  printDateTime(gps.date, gps.time);
+  printFloat(gps.altitude.meters(), gps.altitude.isValid(), 8 , 2);
+  printFloat(gps.course.deg(), gps.course.isValid(), 7, 2);
+  printFloat(gps.speed.kmph(), gps.speed.isValid(), 6, 2);
+  printStr(gps.course.isValid() ? TinyGPSPlus::cardinal(gps.course.deg()) : "*** ", 6);
+
+  printInt(gps.charsProcessed(), true, 6);
+  printInt(gps.sentencesWithFix(), true, 10);
+  printInt(gps.failedChecksum(), true, 9);
   Serial.println();
 }
 
-
-// delay for a good reception
+// This custom version of delay() ensures that the gps object
+// is being "fed".
 static void smartDelay(unsigned long ms)
 {
   unsigned long start = millis();
-  do
+  do 
   {
     while (ss.available())
       gps.encode(ss.read());
   } while (millis() - start < ms);
+}
+
+static void printFloat(float val, bool valid, int len, int prec)
+{
+  if (!valid)
+  {
+    while (len-- > 1)
+      Serial.print('*');
+    Serial.print(' ');
+  }
+  else
+  {
+    Serial.print(val, prec);
+    int vi = abs((int)val);
+    int flen = prec + (val < 0.0 ? 2 : 1); // . and -
+    flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
+    for (int i=flen; i<len; ++i)
+      Serial.print(' ');
+  }
+  smartDelay(0);
+}
+
+static void printInt(unsigned long val, bool valid, int len)
+{
+  char sz[32] = "*****************";
+  if (valid)
+    sprintf(sz, "%ld", val);
+  sz[len] = 0;
+  for (int i=strlen(sz); i<len; ++i)
+    sz[i] = ' ';
+  if (len > 0) 
+    sz[len-1] = ' ';
+  Serial.print(sz);
+  smartDelay(0);
+}
+
+static void printDateTime(TinyGPSDate &d, TinyGPSTime &t)
+{
+  if (!d.isValid())
+  {
+    Serial.print(F("********** "));
+  }
+  else
+  {
+    char sz[32];
+    sprintf(sz, "%02d/%02d/%02d ", d.month(), d.day(), d.year());
+    Serial.print(sz);
+  }
+  
+  if (!t.isValid())
+  {
+    Serial.print(F("******** "));
+  }
+  else
+  {
+    char sz[32];
+    sprintf(sz, "%02d:%02d:%02d ", t.hour(), t.minute(), t.second());
+    Serial.print(sz);
+  }
+
+  printInt(d.age(), d.isValid(), 5);
+  smartDelay(0);
+}
+
+static void printStr(const char *str, int len)
+{
+  int slen = strlen(str);
+  for (int i=0; i<len; ++i)
+    Serial.print(i<slen ? str[i] : ' ');
+  smartDelay(0);
 }
