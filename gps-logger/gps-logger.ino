@@ -1,6 +1,6 @@
-#include <Arduino.h>
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
+// #include <Arduino.h>
 //#include <U8g2lib.h>
 //#include <SPI.h>
 #include <Arduino.h>
@@ -21,12 +21,14 @@ SSD1306AsciiAvrI2c oled;
 
 
 // GPS
-static const int RXPin = 2, TXPin = 3; //GPS communication
-static const uint32_t GPSBaud = 9600;
-SoftwareSerial gpss(RXPin, TXPin);
 
 // TinyGPS++ object
 TinyGPSPlus gps;
+// GPS communication
+static const int RXPin = 2, TXPin = 3;
+static const uint32_t GPSBaud = 9600;
+SoftwareSerial ss(RXPin, TXPin);
+
 
 void setup() {
   Serial.begin(9600);
@@ -40,8 +42,8 @@ void setup() {
   }
   Serial.println("USB Connection established.");
 
-  gpss.begin(GPSBaud);
-  while (gpss.available() == 0){
+  ss.begin(GPSBaud);
+  while (ss.available() == 0){
     ; // wait for gps serial port to connect.
   }
   Serial.println("Connection to GPS established.");
@@ -61,16 +63,18 @@ void setup() {
 
 void loop() {
 
-  while (gpss.available() > 0){
-    gps.encode(gpss.read());
-    Serial.print(F("Satellites: ")); 
-    Serial.print(gps.satellites.value());
+  while (ss.available() > 0){
+    if (gps.encode(ss.read())){
+      Serial.print(F("Satellites: ")); 
+      Serial.print(gps.satellites.value());
+      Serial.println();
+//      sendInfoToSerial();
+    }
 
-    sendInfoToSerial();
     // if (gps.location.isUpdated()){
-      displayInfo();
+      // displayInfo();
     // }
-    delay(2000);
+    // delay(2000);
   }
   if (millis() > 5000 && gps.charsProcessed() < 10)
   {
@@ -78,9 +82,6 @@ void loop() {
     while(true);
   }
 }
-
-
-
 
 
 void displayInfo(){
@@ -223,7 +224,7 @@ static void smartDelay(unsigned long ms)
   unsigned long start = millis();
   do
   {
-    while (gpss.available())
-      gps.encode(gpss.read());
+    while (ss.available())
+      gps.encode(ss.read());
   } while (millis() - start < ms);
 }
