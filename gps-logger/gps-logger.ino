@@ -1,7 +1,9 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
-#include "SSD1306Ascii.h"
-#include "SSD1306AsciiAvrI2c.h"
+#include <SSD1306Ascii.h>
+#include <SSD1306AsciiAvrI2c.h>
+#include <SPI.h>
+#include <SD.h>
 
 // Display
 // 0X3C+SA0 - 0x3C or 0x3D
@@ -10,7 +12,7 @@
 #define RST_PIN -1
 SSD1306AsciiAvrI2c oled;
 
-//GPS
+// GPS
 static const int RXPin = 2, TXPin = 3;
 static const uint32_t GPSBaud = 9600;
 // The TinyGPS++ object
@@ -18,19 +20,43 @@ TinyGPSPlus gps;
 // The serial connection to the GPS device
 SoftwareSerial ss(RXPin, TXPin);
 
+// SD
+// set up variables using the SD utility library functions:
+Sd2Card card;
+SdVolume volume;
+SdFile root;
+const int chipSelect = 4;
+
 void setup()
 {
   Serial.begin(9600);
-  ss.begin(GPSBaud);
-
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
   Serial.println(F("GPS-LOGGER"));
   Serial.print(F("TinyGPS++ library v. ")); Serial.println(TinyGPSPlus::libraryVersion());
   Serial.println(F("(c)2020 by Patrick Itten"));
   Serial.println();
+
+  // SD
+  Serial.print("Initializing SD card...");
+  // see if the card is present and can be initialized:
+  if (!SD.begin(chipSelect)) {
+    Serial.println("Card failed, or not present");
+    while (1);
+  }
+  Serial.println("card initialized.");
+  Serial.println();
+
+  // HEADER
   Serial.println(F("Sats HDOP  Latitude  Longitude  Fix  Date       Time     Date  Alt     Course Speed Card  Chars Sentences Checksum"));
   Serial.println(F("           (deg)     (deg)      Age             UTC      Age   (m)     --- from GPS ----  RX    RX        Fail"));
   Serial.println(F("--------------------------------------------------------------------------------------------------------------------------------------"));
 
+  // GPS
+  ss.begin(GPSBaud);
+
+  // DISPLAY
   #if RST_PIN >= 0
     oled.begin(&Adafruit128x64, DISP_ADDRESS, RST_PIN);
   #else // RST_PIN >= 0
@@ -49,6 +75,7 @@ void loop()
 
   if (gps.location.isUpdated()){
     displayInfo();
+    writeLog();
   }
   
   smartDelay(1000);
@@ -100,6 +127,26 @@ void displayInfo(){
   oled.println();
   oled.print("sat: ");
   oled.print(gps.satellites.value());
+}
+
+void writeLog(){
+  String dataString = "";
+
+
+
+  // open the file. note that only one file can be open at a time,
+  // so you have to close this one before opening another.
+  File dataFile = SD.open("datalog.txt", FILE_WRITE);
+
+  // if the file is available, write to it:
+  if (dataFile) {
+    dataFile.println(dataString);
+    dataFile.close();
+  }
+  // if the file isn't open, pop up an error:
+  else {
+    Serial.println("error opening datalog.txt");
+  }
 }
 
 void serialInfo(){
