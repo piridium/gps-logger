@@ -174,8 +174,8 @@ static void startFilesOnSdNoSync() {
   openTimestampedFile(".gpx", gpxFile);
   gpxFile.print(F(
     "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-    "<gpx version=\"1.0\">\n"
-    "\t<trk><trkseg>\n"));
+    "<gpx version=\"1.0\" creator=\"Arduino GPS-Tracker\">\n"
+    "\t<trk><name>Arduino GPS Track</name><trkseg>\n"));
   gpxFile.print(F(GPX_EPILOGUE));
 }
 
