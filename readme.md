@@ -1,7 +1,8 @@
 # GPS logger
 
-A gps logger for arduino.
-Based on https://github.com/markfickett/gpslogger
+A gps logger for arduino based on https://github.com/markfickett/gpslogger
+Added a 128x64 oled display.
+Todo: add support for 3-axis accelerometer and gyro.
 
 ## Components
 - Arduino Uno
