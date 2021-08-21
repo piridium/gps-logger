@@ -8,7 +8,7 @@
 #include <TinyGPS.h>
 #include <SSD1306AsciiAvrI2c.h>
 
-#define SAMPLE_INTERVAL_MS 1000
+#define SAMPLE_INTERVAL_MS 10000
 
 #define PIN_STATUS_LED 13
 
